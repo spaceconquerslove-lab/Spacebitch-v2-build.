@@ -16,10 +16,11 @@ export default function Home() {
 
     try {
       const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages }),
-      });
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ messages: newMessages }),
+  cache: "no-store",
+});
 
       if (!res.ok) {
         const errText = await res.text();
