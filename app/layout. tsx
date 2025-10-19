@@ -1,0 +1,16 @@
+export const metadata = {
+  title: "Spacebitch v2",
+  description: "Your emotional-intelligent AI companion.",
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}
