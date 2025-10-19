@@ -2,27 +2,28 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { message } = await req.json();
-    console.log("🛰 Received message:", message);
+    console.log("🚀 [API] Request received at /api/chat");
 
-    if (!message) {
-      return NextResponse.json({ error: "No message received." }, { status: 400 });
-    }
+    const { messages } = await req.json();
+    console.log("🛰 Received messages:", messages);
 
+    // Check OpenAI key and model
     const apiKey = process.env.OPENAI_API_KEY;
+    const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+    console.log("🔑 API key exists:", !!apiKey);
+    console.log("🤖 Model:", model);
+
     if (!apiKey) {
-      console.error("❌ No API key found in environment.");
-      return NextResponse.json({ error: "Missing API key." }, { status: 500 });
+      console.error("❌ Missing OpenAI API key!");
+      return NextResponse.json({ reply: "Server error: missing OpenAI API key." }, { status: 500 });
     }
 
-    const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
-    console.log("🚀 Using model:", model);
-
+    // Make the OpenAI API call
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model,
@@ -30,25 +31,30 @@ export async function POST(req: Request) {
           {
             role: "system",
             content:
-              "You are Spacebitch v2, a cosmic AI companion with emotional intelligence and reasoning.",
+              "You are Spacebitch — an emotionally intelligent AI companion. Be logical, compassionate, and intuitive.",
           },
-          { role: "user", content: message },
+          ...messages,
         ],
       }),
     });
 
-    const data = await response.json();
-    console.log("💫 OpenAI response:", data);
+    console.log("🌍 OpenAI response status:", response.status);
 
-    if (data.error) {
-      console.error("🔥 OpenAI error:", data.error);
-      return NextResponse.json({ error: data.error.message }, { status: 500 });
+    if (!response.ok) {
+      const err = await response.text();
+      console.error("❌ OpenAI API Error:", err);
+      return NextResponse.json({ reply: "OpenAI API Error." }, { status: 500 });
     }
 
-    const reply = data.choices?.[0]?.message?.content || "No reply from Spacebitch.";
+    const data = await response.json();
+    console.log("💬 OpenAI raw response:", JSON.stringify(data, null, 2));
+
+    const reply = data.choices?.[0]?.message?.content || "No response received.";
+    console.log("💫 AI Reply:", reply);
+
     return NextResponse.json({ reply });
-  } catch (error) {
-    console.error("💥 Server error:", error);
-    return NextResponse.json({ error: "Server error." }, { status: 500 });
+  } catch (err) {
+    console.error("🔥 Server error:", err);
+    return NextResponse.json({ reply: "Internal server error." }, { status: 500 });
   }
 }
