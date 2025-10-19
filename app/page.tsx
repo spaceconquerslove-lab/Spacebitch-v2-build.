@@ -1,67 +1,96 @@
-'use client'
-import { useState } from 'react'
+"use client";
+import { useState } from "react";
 
-type Message = {
-  role: 'user' | 'assistant'
-  content: string
-}
+export default function Home() {
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [loading, setLoading] = useState(false);
 
-export default function Page() {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
+  const sendMessage = async () => {
+    if (!input.trim() || loading) return;
 
-  async function sendMessage() {
-    if (!input.trim() || loading) return
-
-    const newMessages: Message[] = [
-      ...messages,
-      { role: 'user', content: input }
-    ]
-
-    setMessages(newMessages)
-    setInput('')
-    setLoading(true)
+    const newMessages = [...messages, { role: "user", content: input }];
+    setMessages(newMessages);
+    setInput("");
+    setLoading(true);
 
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages })
-      })
-      const data = await res.json()
-      setMessages([...newMessages, { role: 'assistant', content: data.reply }])
-    } catch (error) {
-      console.error(error)
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: newMessages }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("Server error:", errText);
+        setMessages([...newMessages, { role: "assistant", content: "Server error." }]);
+        setLoading(false);
+        return;
+      }
+
+      const data = await res.json();
+      setMessages([...newMessages, { role: "assistant", content: data.reply || "No response." }]);
+    } catch (err) {
+      console.error("Network error:", err);
+      setMessages([...newMessages, { role: "assistant", content: "Network error." }]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <main className="p-6">
-      <div className="space-y-2">
-        {messages.map((m, i) => (
-          <div key={i} className={m.role === 'user' ? 'text-right' : 'text-left'}>
-            <p>{m.content}</p>
-          </div>
+    <main
+      style={{
+        backgroundColor: "black",
+        color: "white",
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "monospace",
+      }}
+    >
+      <h1>Spacebitch v2</h1>
+
+      <div style={{ width: "90%", maxWidth: 400 }}>
+        {messages.map((msg, i) => (
+          <p key={i}>
+            <strong>{msg.role === "user" ? "You: " : "AI: "}</strong>
+            {msg.content}
+          </p>
         ))}
-      </div>
-      <div className="mt-4 flex">
+
+        {loading && <p>Typing...</p>}
+
         <input
-          className="border p-2 flex-1"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Say something..."
+          style={{
+            width: "80%",
+            padding: "8px",
+            borderRadius: "6px",
+            border: "1px solid #444",
+            backgroundColor: "#222",
+            color: "white",
+          }}
         />
         <button
-          className="ml-2 px-4 py-2 bg-blue-600 text-white"
           onClick={sendMessage}
-          disabled={loading}
+          style={{
+            marginLeft: "8px",
+            padding: "8px 16px",
+            borderRadius: "6px",
+            backgroundColor: "#ff00ff",
+            border: "none",
+            color: "white",
+          }}
         >
-          {loading ? '...' : 'Send'}
+          Send
         </button>
       </div>
     </main>
-  )
+  );
 }
